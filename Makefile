@@ -1,3 +1,3 @@
 kubekey: kubekey.go
 	go mod download
-	go build kubekey.go
+	CGO_ENABLED=0 go build kubekey.go
