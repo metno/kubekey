@@ -7,7 +7,7 @@ clean:
 
 kubekey: kubekey.go
 	go mod download
-	CGO_ENABLED=0 go build kubekey.go
+	CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' kubekey.go
 
 update:
 	go get -u ./...
