@@ -23,5 +23,4 @@ require (
 	golang.org/x/sys v0.20.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
-	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 )
