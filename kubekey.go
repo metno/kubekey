@@ -1,6 +1,6 @@
 /*
 kubekey is a client-go credentials plugin for kubectl
-Copyright (C) 2019 Meteorologisk Institutt (MET Norway)
+Copyright (C) 2019 - 2025 Meteorologisk Institutt (MET Norway)
 Postboks 43 Blindern, 0313 OSLO, Norway - www.met.no
 
 This program is free software; you can redistribute it and/or
@@ -23,11 +23,12 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"embed"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"html"
+	"html/template"
 	"log"
 	"net"
 	"net/http"
@@ -43,41 +44,22 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const Version = "1.0.0"
-const HTML_OK string = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>OK</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://parkert.met.no/.parkert/parkert.css">
-</head>
-<body>
-<img src="%s" alt="" style="float: left; margin-right: 2em;">
-<h1>You're identified as %s</h1>
-<p>Please close this window and return to kubectl</p>
-<div><a href="https://www.met.no/"><img src="https://parkert.met.no/.parkert/met.png" alt="Meteorologisk institutt" class="logo"></a></div>
-<div class="photoby"></div>
-</body>
-</html>
-`
-const HTML_FAIL string = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Error</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://parkert.met.no/.parkert/parkert.css">
-</head>
-<body style="background-color: rgba(162, 78, 117, 0.8)">
-<h1>Authentication error</h1>
-<p>%s</p>
-<div><a href="https://www.met.no/"><img src="https://parkert.met.no/.parkert/met.png" alt="Meteorologisk institutt" class="logo"></a></div>
-<div class="photoby"></div>
-</body>
-</script>
-</html>
-`
+const Version = "1.0.20250110"
+
+//go:embed templates/*
+var embeddedTemplates embed.FS
+var useEmbeddedTemplates bool
+
+func ParseFiles(filename string) (*template.Template, error) {
+	if useEmbeddedTemplates {
+		return template.ParseFS(embeddedTemplates, fmt.Sprintf("templates/%v", filename))
+	}
+	return template.ParseFiles(filename)
+}
+
+type FailMsg struct {
+	Msg string
+}
 
 func newState() string {
 	random := make([]byte, 32)
@@ -125,7 +107,7 @@ func (cfg *OIDC) Authenticate(tokenChan chan<- string) {
 		time.Sleep(2 * time.Second)
 		srv.Close()
 	}
-	
+
 	// Listen to random port on localhost
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -161,12 +143,17 @@ func (cfg *OIDC) Authenticate(tokenChan chan<- string) {
 	})
 
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-	        var token string
-	        var err error
+		var token string
+		var err error
 
 		fail := func(msg string) {
+			failMsg := FailMsg{Msg: msg}
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, HTML_FAIL, html.EscapeString(msg))
+			tmpl, err := ParseFiles("html_fail.tmpl")
+			if err != nil {
+				log.Fatal(err)
+			}
+			tmpl.Execute(w, failMsg)
 			go closeSrv(token, err)
 		}
 
@@ -190,7 +177,7 @@ func (cfg *OIDC) Authenticate(tokenChan chan<- string) {
 			fail("Failed to verify ID Token: " + err.Error())
 			return
 		}
-                token = fmt.Sprintf("%s.%d", rawIDToken, idToken.Expiry.Unix())
+		token = fmt.Sprintf("%s.%d", rawIDToken, idToken.Expiry.Unix())
 
 		var claims struct {
 			Name    string `json:"name"`
@@ -201,7 +188,11 @@ func (cfg *OIDC) Authenticate(tokenChan chan<- string) {
 			fail("Obtained IDToken, but some info seems to be missing. (Might still be working.)" + err.Error())
 			return
 		}
-		fmt.Fprintf(w, HTML_OK, claims.Picture, claims.Name)
+		tmpl, err := ParseFiles("html_ok.tmpl")
+		if err != nil {
+			log.Fatal(err)
+		}
+		tmpl.Execute(w, claims)
 		go closeSrv(token, nil)
 	})
 
@@ -233,9 +224,9 @@ func (cfg *OIDC) GetToken() (string, time.Time) {
 		go cfg.Authenticate(tokenCh)
 		token = <-tokenCh
 		if strings.Count(token, ".") < 3 {
-		    fmt.Fprintf(os.Stderr, "Failed to aquire vaild credentials (waiting 20s to allow you to read error message in browser)")
-		    time.Sleep(20 * time.Second)  // Allow user to read error message in browser
-		    os.Exit(1)
+			log.Println("Failed to aquire vaild credentials")
+			time.Sleep(1 * time.Second) // Allow user to read error message in browser
+			os.Exit(1)
 		}
 		parts = strings.Split(token, ".")
 	}
@@ -265,13 +256,54 @@ func ExecCredential(tk string, expire time.Time) *execCredential {
 	}
 }
 
+func changeToTemplateDirectory() {
+	var err error
+	templateDir := make([]string, 0, 5)
+
+	templateDirectoryFromEnv := os.Getenv("KUBEKEY_TEMPLATEDIR")
+	if templateDirectoryFromEnv != "" {
+		templateDir = append(templateDir, templateDirectoryFromEnv)
+	}
+
+	templateDir = append(templateDir, "/etc/kubekey")
+	templateDir = append(templateDir, "/usr/local/share/kubekey")
+	templateDir = append(templateDir, "/usr/share/kubekey")
+	templateDir = append(templateDir, "templates")
+
+	// Try to change to directories in the order defined above
+	// Return from this function on success
+	for len(templateDir) > 0 {
+		tryDirectory := templateDir[0]
+		templateDir = templateDir[1:] // remove the first index from array
+		err = os.Chdir(tryDirectory)
+		if err == nil {
+			useEmbeddedTemplates = false
+			return
+		} else if tryDirectory == templateDirectoryFromEnv {
+			log.Println("Environment variable KUBEKEY_TEMPLATEDIR is set, but couldn't change to that directory")
+			log.Fatal(err)
+		}
+	}
+
+	useEmbeddedTemplates = true
+	return
+}
+
 func main() {
-        getVersionPtr := flag.Bool("v", false, "version")
-        flag.Parse()
-        if *getVersionPtr {
-            fmt.Printf("kubekey v%s\n", Version)
-            os.Exit(0)
-        }
+	getVersionPtr := flag.Bool("v", false, "version")
+	flag.Parse()
+	if *getVersionPtr {
+		fmt.Printf("kubekey v%s\n", Version)
+		os.Exit(0)
+	}
+
+	changeToTemplateDirectory()
+	log.Println(os.Getwd())
+	if useEmbeddedTemplates {
+		log.Println("Use embedded templates")
+	} else {
+		log.Println("Read template files from directory")
+	}
 
 	oidc := &OIDC{
 		ClientID:     os.Getenv("CLIENT_ID"),
