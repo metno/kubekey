@@ -17,6 +17,12 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
+
+//
+// Embeds default templates and utility function to load templates from
+// different directories with fallback to embedded default templates.
+//
+
 package main
 
 import (
@@ -30,13 +36,6 @@ import (
 //go:embed templates/*
 var embeddedTemplates embed.FS
 var useEmbeddedTemplates bool
-
-func parseTmplFiles(filename string) (*template.Template, error) {
-	if useEmbeddedTemplates {
-		return template.ParseFS(embeddedTemplates, fmt.Sprintf("templates/%v", filename))
-	}
-	return template.ParseFiles(filename)
-}
 
 type failMsg struct {
 	Msg string
@@ -73,4 +72,11 @@ func changeToTemplateDirectory() {
 
 	useEmbeddedTemplates = true
 	return
+}
+
+func parseTmplFiles(filename string) (*template.Template, error) {
+	if useEmbeddedTemplates {
+		return template.ParseFS(embeddedTemplates, fmt.Sprintf("templates/%v", filename))
+	}
+	return template.ParseFiles(filename)
 }

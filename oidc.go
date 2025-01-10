@@ -17,6 +17,12 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
+
+//
+// The idea here is to spawn up a short lived http server on localhost and spin up the users browser for login through SSO.
+// See https://auth0.com/blog/oauth-2-best-practices-for-native-apps/
+//
+
 package main
 
 import (
@@ -29,16 +35,20 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
 	oidc "github.com/coreos/go-oidc/v3/oidc"
 
 	"github.com/pkg/browser"
-	"github.com/zalando/go-keyring"
 	"golang.org/x/oauth2"
 )
+
+type OIDC struct {
+	ClientID     string
+	ClientSecret string
+	IDPIssuerURL string
+}
 
 func newState() string {
 	random := make([]byte, 32)
@@ -64,12 +74,6 @@ func pkceCredentials() (oauth2.AuthCodeOption, oauth2.AuthCodeOption, oauth2.Aut
 	codeVerifier := oauth2.SetAuthURLParam("code_verifier", plainCodeChallenge)
 
 	return codeChallenge, codeChallengeMethod, codeVerifier
-}
-
-type OIDC struct {
-	ClientID     string
-	ClientSecret string
-	IDPIssuerURL string
 }
 
 func (cfg *OIDC) Authenticate(tokenChan chan<- string) {
@@ -178,59 +182,4 @@ func (cfg *OIDC) Authenticate(tokenChan chan<- string) {
 	browser.Stdout = os.Stderr
 	browser.OpenURL(baseURL + "/")
 	srv.Serve(listener)
-}
-
-/*
-Cache IDToken in the operating system keyring together with .expiry in seconds since epoch
-Return OIDC IDToken, and expiry time on success
-*/
-func (cfg *OIDC) GetToken() (string, time.Time) {
-	token, err := keyring.Get("kubekey", cfg.ClientID)
-	if err == keyring.ErrNotFound {
-		token = "...0" // Expired token => revalidate later
-	} else if err != nil {
-		log.Fatal(err)
-	}
-	parts := strings.Split(token, ".")
-	expireSeconds, err := strconv.ParseInt(parts[3], 10, 64)
-	if err != nil {
-		log.Fatal(err)
-	}
-	expire := time.Unix(expireSeconds, 0).UTC()
-	// Check if we have less than 10s to expiry => refresh
-	if time.Now().Add(time.Second * 10).After(expire) {
-		tokenCh := make(chan string)
-		go cfg.Authenticate(tokenCh)
-		token = <-tokenCh
-		if strings.Count(token, ".") < 3 {
-			log.Println("Failed to aquire vaild credentials")
-			time.Sleep(1 * time.Second) // Allow user to read error message in browser
-			os.Exit(1)
-		}
-		parts = strings.Split(token, ".")
-	}
-	keyring.Set("kubekey", cfg.ClientID, token)
-	return strings.Join(parts[0:3], "."), expire
-}
-
-type Status struct {
-	Token               string `json:"token"`
-	ExpirationTimestamp string `json:"expirationTimestamp"`
-}
-
-type execCredential struct {
-	ApiVersion string  `json:"apiVersion"`
-	Kind       string  `json:"kind"`
-	Status     *Status `json:"status"`
-}
-
-func ExecCredential(tk string, expire time.Time) *execCredential {
-	return &execCredential{
-		ApiVersion: "client.authentication.k8s.io/v1beta1",
-		Kind:       "ExecCredential",
-		Status: &Status{
-			Token:               tk,
-			ExpirationTimestamp: expire.Format(time.RFC3339),
-		},
-	}
 }
