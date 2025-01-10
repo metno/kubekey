@@ -24,7 +24,7 @@ jobs:
       - name: Checksums (SHA256)
         run: sha256sum kubekey*
 
-      - name: Upload the Rodeo binaries
+      - name: Upload the kubekey binaries
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
