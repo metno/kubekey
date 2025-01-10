@@ -126,9 +126,9 @@ func (cfg *OIDC) Authenticate(tokenChan chan<- string) {
 		var err error
 
 		fail := func(msg string) {
-			failMsg := FailMsg{Msg: msg}
+			failMsg := failMsg{Msg: msg}
 			w.WriteHeader(http.StatusInternalServerError)
-			tmpl, err := ParseFiles("html_fail.tmpl")
+			tmpl, err := parseTmplFiles("html_fail.tmpl")
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -167,7 +167,7 @@ func (cfg *OIDC) Authenticate(tokenChan chan<- string) {
 			fail("Obtained IDToken, but some info seems to be missing. (Might still be working.)" + err.Error())
 			return
 		}
-		tmpl, err := ParseFiles("html_ok.tmpl")
+		tmpl, err := parseTmplFiles("html_ok.tmpl")
 		if err != nil {
 			log.Fatal(err)
 		}

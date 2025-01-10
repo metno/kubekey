@@ -31,14 +31,14 @@ import (
 var embeddedTemplates embed.FS
 var useEmbeddedTemplates bool
 
-func ParseFiles(filename string) (*template.Template, error) {
+func parseTmplFiles(filename string) (*template.Template, error) {
 	if useEmbeddedTemplates {
 		return template.ParseFS(embeddedTemplates, fmt.Sprintf("templates/%v", filename))
 	}
 	return template.ParseFiles(filename)
 }
 
-type FailMsg struct {
+type failMsg struct {
 	Msg string
 }
 
