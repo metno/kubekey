@@ -298,12 +298,6 @@ func main() {
 	}
 
 	changeToTemplateDirectory()
-	log.Println(os.Getwd())
-	if useEmbeddedTemplates {
-		log.Println("Use embedded templates")
-	} else {
-		log.Println("Read template files from directory")
-	}
 
 	oidc := &OIDC{
 		ClientID:     os.Getenv("CLIENT_ID"),
