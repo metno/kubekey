@@ -16,7 +16,7 @@ for login via OpenIDConnect/OIDC protocol.
   * `CLIENT_SECRET`: Empty if supported by your issuer, or if needed just set this to what you receive when configuring the issuer.
   * `IDP_ISSUER_URL`: If the issuer's OIDC discovery URL is https://accounts.provider.example/.well-known/openid-configuration, the value should be https://accounts.provider.example
 * Configure your kubernetes cluster to trust an OIDC issuer, see https://kubernetes.io/docs/reference/access-authn-authz/authentication/#configuring-the-api-server
-* See [example configuration](./examples/.kube/config) for more instruction on how to configure kubekey for usage with [kubectl](https://kubernetes.io/docs/reference/kubectl/quick-reference/#kubectl-context-and-configuration) for your users. Tailor your kubectl configuration file and put it in $HOME/.kube/config (or another place if you have set your `KUBECONFIG` environment variable.)
+* See [example configuration](./example/.kube/config) for more instruction on how to configure kubekey for usage with [kubectl](https://kubernetes.io/docs/reference/kubectl/quick-reference/#kubectl-context-and-configuration) for your users. Tailor your kubectl configuration file and put it in $HOME/.kube/config (or another place if you have set your `KUBECONFIG` environment variable.)
 
 ## Copyright and license
 
