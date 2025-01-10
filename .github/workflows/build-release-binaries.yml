@@ -21,8 +21,11 @@ jobs:
       - name: Build kubekey for MacOS(darwin), linux and windows
         run: make
 
+      - name: Checksums (SHA256)
+        run: sha256sum kubekey*
+
       - name: Upload the Rodeo binaries
-        uses: actions/svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
