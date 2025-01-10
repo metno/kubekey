@@ -23,12 +23,8 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
-	"embed"
 	"encoding/base64"
-	"encoding/json"
-	"flag"
 	"fmt"
-	"html/template"
 	"log"
 	"net"
 	"net/http"
@@ -43,23 +39,6 @@ import (
 	"github.com/zalando/go-keyring"
 	"golang.org/x/oauth2"
 )
-
-const Version = "1.0.20250110"
-
-//go:embed templates/*
-var embeddedTemplates embed.FS
-var useEmbeddedTemplates bool
-
-func ParseFiles(filename string) (*template.Template, error) {
-	if useEmbeddedTemplates {
-		return template.ParseFS(embeddedTemplates, fmt.Sprintf("templates/%v", filename))
-	}
-	return template.ParseFiles(filename)
-}
-
-type FailMsg struct {
-	Msg string
-}
 
 func newState() string {
 	random := make([]byte, 32)
@@ -254,60 +233,4 @@ func ExecCredential(tk string, expire time.Time) *execCredential {
 			ExpirationTimestamp: expire.Format(time.RFC3339),
 		},
 	}
-}
-
-func changeToTemplateDirectory() {
-	var err error
-	templateDir := make([]string, 0, 5)
-
-	templateDirectoryFromEnv := os.Getenv("KUBEKEY_TEMPLATEDIR")
-	if templateDirectoryFromEnv != "" {
-		templateDir = append(templateDir, templateDirectoryFromEnv)
-	}
-
-	templateDir = append(templateDir, "/etc/kubekey")
-	templateDir = append(templateDir, "/usr/local/share/kubekey")
-	templateDir = append(templateDir, "/usr/share/kubekey")
-	templateDir = append(templateDir, "templates")
-
-	// Try to change to directories in the order defined above
-	// Return from this function on success
-	for len(templateDir) > 0 {
-		tryDirectory := templateDir[0]
-		templateDir = templateDir[1:] // remove the first index from array
-		err = os.Chdir(tryDirectory)
-		if err == nil {
-			useEmbeddedTemplates = false
-			return
-		} else if tryDirectory == templateDirectoryFromEnv {
-			log.Println("Environment variable KUBEKEY_TEMPLATEDIR is set, but couldn't change to that directory")
-			log.Fatal(err)
-		}
-	}
-
-	useEmbeddedTemplates = true
-	return
-}
-
-func main() {
-	getVersionPtr := flag.Bool("v", false, "version")
-	flag.Parse()
-	if *getVersionPtr {
-		fmt.Printf("kubekey v%s\n", Version)
-		os.Exit(0)
-	}
-
-	changeToTemplateDirectory()
-
-	oidc := &OIDC{
-		ClientID:     os.Getenv("CLIENT_ID"),
-		ClientSecret: os.Getenv("CLIENT_SECRET"),
-		IDPIssuerURL: os.Getenv("IDP_ISSUER_URL"),
-	}
-	ec := ExecCredential(oidc.GetToken())
-	enc, err := json.Marshal(ec)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("%v\n", string(enc))
 }
