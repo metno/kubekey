@@ -18,9 +18,9 @@ kubekey does the job of fetching an authentication token from your OIDC provider
 
 1. User tries to issue a kubectl command on the commandline/terminal
 2. kubectl/client-go reads it configuration file and executes kubekey
-3. kubekey checks with the [operating system keyring](https://en.wikipedia.org/wiki/GNOME_Keyring) if kubekey has caches a non-expires authentication token, if it has, it provides the token immedeately (go to step 10)
-4. kubekey launches a short lives local http server and asks the operating system to bring up the browser, instructing the browser to redirect to the OIDC provider
-5. the OIDC provider asks the user to log in (could be performed as SSO, if the OIDC provider recognizes the user as already logged in, or if kerberos login is enabled, or...)
+3. kubekey checks with the [operating system keyring](https://en.wikipedia.org/wiki/GNOME_Keyring) if kubekey has cached a non-expired authentication token, if it has, it provides the token immedeately (go to step 10)
+4. kubekey launches a short lived local http server and asks the operating system to bring up the browser, instructing the browser to redirect to the OIDC provider
+5. The OIDC provider asks the user to log in (could be performed as SSO, if the OIDC provider recognizes the user as already logged in, or if kerberos login is enabled, or...)
 6. User provides login credentials
 7. The browser forwards the credentials to the OIDC provider
 8. The OIDC provides issues an authentication token and sends it back to the browser
