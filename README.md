@@ -30,7 +30,7 @@ kubekey does the job of fetching an access token from your OIDC provider, so tha
 
 ## Getting started
 
-1. Download kubekey for your architecture from the latest release, or build with golang and make.
+1. Download kubekey for your architecture from the latest release (and add exec permissions / chmod +x), or build with golang and make.
 2. Optionally: Customize the [templates](templates) and save them to /etc/kubekey/ on the users workstation (fallback will be to use the compiled in templates)
 3. Configure your OIDC issuer - you need to get
   * `CLIENT_ID`: A client id that all tokens must be issued for.
