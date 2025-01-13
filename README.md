@@ -12,21 +12,21 @@ aquire an autentication token from the OIDC provider and pass it to the kubernet
 
 ## How it works
 
-kubekey does the job of fetching an authentication token from your OIDC provider, so that kubectl/client-go can use the token for authentication on your kubernetes API.
+kubekey does the job of fetching an access token from your OIDC provider, so that kubectl/client-go can use the token for authentication on your kubernetes API.
 
 ![kubekey-flow](https://github.com/user-attachments/assets/a79b9464-dc26-4ad9-9472-5a7428cc0c81)
 
 1. User tries to issue a kubectl command on the commandline/terminal
 2. kubectl/client-go reads it configuration file and executes kubekey
-3. kubekey checks with the [operating system keyring](https://en.wikipedia.org/wiki/GNOME_Keyring) if kubekey has cached a non-expired authentication token, if it has, it provides the token immedeately (go to step 10)
+3. kubekey checks with the [operating system keyring](https://en.wikipedia.org/wiki/GNOME_Keyring) if kubekey has cached a non-expired access token, if it has, it provides the token immedeately (go to step 10)
 4. kubekey launches a short lived local http server and asks the operating system to bring up the browser, instructing the browser to redirect to the OIDC provider
 5. The OIDC provider asks the user to log in (could be performed as SSO, if the OIDC provider recognizes the user as already logged in, or if kerberos login is enabled, or...)
 6. User provides login credentials
 7. The browser forwards the credentials to the OIDC provider
-8. The OIDC provides issues an authentication token and sends it back to the browser
-9. The browser redirects to kubekey's short lived local http server with the OIDC authentication token, kubekey stores the token in the operating system keyring
-10. kubekey provides kubectl/client-go with the authentication token
-11. kubectl/client-go sends API-requests to kube-apiserver with the authentication token. kube-apiserver then validates the signature and extracts information about the user
+8. The OIDC provides issues an access token and sends it back to the browser
+9. The browser redirects to kubekey's short lived local http server with the OIDC access token, kubekey stores the token in the operating system keyring
+10. kubekey provides kubectl/client-go with the access token
+11. kubectl/client-go sends API-requests to kube-apiserver with the access token. kube-apiserver then validates the signature and extracts information about the user
 
 ## Getting started
 
