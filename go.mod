@@ -2,7 +2,7 @@ module github.com/metno/kubekey
 
 go 1.23
 
-toolchain go1.23.4
+toolchain go1.23.5
 
 require (
 	github.com/coreos/go-oidc/v3 v3.12.0
