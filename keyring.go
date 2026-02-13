@@ -34,7 +34,7 @@ Cache IDToken in the operating system keyring together with .expiry in seconds s
 Return OIDC IDToken, and expiry time on success
 */
 func (cfg *OIDC) GetToken() (string, time.Time) {
-	token, err := keyring.Get("kubekey", cfg.ClientID)
+	token, err := keyring.Get("github.com/metno/kubekey", cfg.ClientID + "@" + cfg.IDPIssuerURL)
 	if err == keyring.ErrNotFound {
 		token = "...0" // Expired token => revalidate later
 	} else if err != nil {
@@ -58,6 +58,6 @@ func (cfg *OIDC) GetToken() (string, time.Time) {
 		}
 		parts = strings.Split(token, ".")
 	}
-	keyring.Set("kubekey", cfg.ClientID, token)
+	keyring.Set("github.com/metno/kubekey", cfg.ClientID + "@" + cfg.IDPIssuerURL, token)
 	return strings.Join(parts[0:3], "."), expire
 }
