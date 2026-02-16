@@ -1,6 +1,6 @@
 /*
 kubekey is a client-go credentials plugin for kubectl
-Copyright (C) 2019 - 2025 Meteorologisk Institutt (MET Norway)
+Copyright (C) 2019 - 2026 Meteorologisk Institutt (MET Norway)
 Postboks 43 Blindern, 0313 OSLO, Norway - www.met.no
 
 This program is free software; you can redistribute it and/or
