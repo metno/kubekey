@@ -29,6 +29,6 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
-          file: ./kubekey-*-amd64*
+          file: ./kubekey-*
           file_glob: true
           body: "Release of kubekey v${{ github.ref }}"
