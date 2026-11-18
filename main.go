@@ -27,7 +27,7 @@ import (
 	"os"
 )
 
-const Version = "1.0.20260216"
+const Version = "1.0.20261118"
 
 // also see templates.go for global variable
 // that is set depending on presence of templateDirectory
